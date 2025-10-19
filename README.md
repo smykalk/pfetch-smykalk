@@ -51,13 +51,13 @@ picture"!
 # Valid: space separated string
 #
 # OFF by default: shell editor wm de palette
-PF_INFO="ascii title os host kernel uptime pkgs memory"
+PF_INFO="ascii title os host kernel uptime pkgs memory swap"
 
 # Example: Only ASCII.
 PF_INFO="ascii"
 
 # Example: Only Information.
-PF_INFO="title os host kernel uptime pkgs memory"
+PF_INFO="title os host kernel uptime pkgs memory swap"
 
 # A file to source before running pfetch.
 # Default: unset

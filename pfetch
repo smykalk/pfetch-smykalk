@@ -939,6 +939,94 @@ get_memory() {
     log memory "${mem_used:-?}M / ${mem_full:-?}M" >&6
 }
 
+get_swap() {
+    swap_full=
+    swap_used=
+    swap_free=
+
+    case $os in
+        (Linux*|NetBSD*)
+            while IFS=':k ' read -r key val _; do
+                case $key in
+                    (SwapTotal)
+                        swap_full=$((val / 1024))
+                    ;;
+
+                    (SwapFree)
+                        swap_free=$((val / 1024))
+                    ;;
+                esac
+            done < /proc/meminfo
+
+            case ${swap_full:-0} in
+                (*[0-9]*)
+                    swap_used=$((swap_full - ${swap_free:-0}))
+                    swap_full=${swap_full}M
+                    swap_used=${swap_used}M
+                ;;
+            esac
+        ;;
+
+        (Darwin*)
+            swap_data=$(sysctl -n vm.swapusage 2>/dev/null)
+
+            case $swap_data in
+                (*'total = '*)
+                    swap_full=${swap_data#*total = }
+                    swap_full=${swap_full%% *}
+
+                    swap_used=${swap_data#*used = }
+                    swap_used=${swap_used%% *}
+                ;;
+            esac
+        ;;
+
+        (OpenBSD*)
+            if has swapctl; then
+                while read -r label total used avail _; do
+                    case $label in
+                        (total)
+                            swap_full=$((total / 1024))
+                            swap_used=$((used / 1024))
+                            break
+                        ;;
+                    esac
+                done <<-EOF
+                    $(swapctl -sk)
+				EOF
+
+                swap_full=${swap_full}M
+                swap_used=${swap_used}M
+            fi
+        ;;
+
+        (FreeBSD*|DragonFly*)
+            if has swapinfo; then
+                while read -r device blocks used avail _; do
+                    case $device in
+                        (total)
+                            swap_full=$((blocks / 1024))
+                            swap_used=$((used / 1024))
+                            break
+                        ;;
+                    esac
+                done <<-EOF
+                    $(swapinfo -k)
+				EOF
+
+                swap_full=${swap_full}M
+                swap_used=${swap_used}M
+            fi
+        ;;
+    esac
+
+    case ${swap_full:-} in
+        (*[0-9]*)
+            log swap "${swap_used:-0M} / ${swap_full:-0M}" >&6
+        ;;
+    esac
+}
+
 get_wm() {
     case $os in
         (Darwin*)
@@ -1914,7 +2002,7 @@ EOF
         # Disable globbing and set the positional parameters to the
         # contents of 'PF_INFO'.
         set -f
-        set +f -- ${PF_INFO-ascii title os host kernel uptime pkgs memory}
+        set +f -- ${PF_INFO-ascii title os host kernel uptime pkgs memory swap}
 
         # Iterate over the info functions to determine the lengths of the
         # "info names" for output alignment. The option names and subtitles
