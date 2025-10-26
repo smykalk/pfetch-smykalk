@@ -1027,6 +1027,20 @@ get_swap() {
     esac
 }
 
+get_session() {
+    case $os in
+        (Linux*)
+            session_type=${XDG_SESSION_TYPE:-?}
+        ;;
+
+        (*)
+            session_type=N/A
+        ;;
+    esac
+
+    log session "$session_type" >&6
+}
+
 get_wm() {
     case $os in
         (Darwin*)
@@ -2002,7 +2016,7 @@ EOF
         # Disable globbing and set the positional parameters to the
         # contents of 'PF_INFO'.
         set -f
-        set +f -- ${PF_INFO-ascii title os host kernel uptime pkgs memory swap}
+        set +f -- ${PF_INFO-ascii title os host kernel uptime pkgs memory swap session}
 
         # Iterate over the info functions to determine the lengths of the
         # "info names" for output alignment. The option names and subtitles
